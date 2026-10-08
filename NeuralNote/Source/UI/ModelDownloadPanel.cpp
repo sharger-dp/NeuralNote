@@ -44,6 +44,9 @@ constexpr int PERCENT_WIDTH = 32;
 
 constexpr int FOOTER_GAP = 10;
 constexpr int BUTTON_HEIGHT = 26;
+constexpr int PATH_LINE_HEIGHT = 16;
+constexpr int FOOTER_BUTTON_GAP = 8;
+constexpr float PATH_TRACKING = 0.04f;
 constexpr float ICON_SIZE = 13.0f;
 constexpr float BAR_CORNER = 2.0f;
 constexpr int POLL_HZ = 10;
@@ -79,6 +82,28 @@ juce::String formatSize(juce::int64 inNumBytes)
     }
 
     return juce::String(juce::roundToInt(static_cast<double>(inNumBytes) / 1.0e6)) + " MB";
+}
+
+/** inPath shortened with a leading ellipsis until it fits inWidth, keeping the folder's name. */
+juce::String elidePath(const juce::String& inPath, int inWidth, const juce::Font& inFont)
+{
+    if (inPath.isEmpty() || inFont.getStringWidth(inPath) <= inWidth) {
+        return inPath;
+    }
+
+    juce::String tail = inPath;
+
+    while (tail.isNotEmpty() && inFont.getStringWidth("..." + tail) > inWidth) {
+        const int last_sep = jmax(tail.lastIndexOfChar('/'), tail.lastIndexOfChar('\\'));
+
+        if (last_sep < 0) {
+            break;
+        }
+
+        tail = tail.substring(last_sep + 1);
+    }
+
+    return "..." + tail;
 }
 
 /** A row's contents: its background minus the inset that lines them up with the header. */
@@ -150,6 +175,18 @@ ModelDownloadPanel::ModelDownloadPanel(NeuralNoteAudioProcessor& inProcessor)
     mOpenFolderButton.onClick = [] { NNFileUtils::openModelsDirectory(); };
     addAndMakeVisible(mOpenFolderButton);
 
+    mChangeFolderButton.setIcon(nn::icons::folderStroked, NnFlatButton::IconStyle::stroked, ICON_SIZE);
+    mChangeFolderButton.setLabel("Change models folder", nn::fonts::buttonLabel());
+    mChangeFolderButton.setPadding(10, 12, 7);
+    mChangeFolderButton.setCornerRadius(static_cast<float>(nn::metrics::controlCorner));
+    mChangeFolderButton.setColour(NnFlatButton::backgroundColourId, nn::colours::popupRowHover);
+    mChangeFolderButton.setColour(NnFlatButton::outlineColourId, nn::colours::popupBorder);
+    mChangeFolderButton.setColour(NnFlatButton::iconColourId, nn::colours::textIcon);
+    mChangeFolderButton.setColour(NnFlatButton::textColourId, nn::colours::textButton);
+    mChangeFolderButton.setWantsKeyboardFocus(false);
+    mChangeFolderButton.onClick = [this] { _chooseModelsDirectory(); };
+    addAndMakeVisible(mChangeFolderButton);
+
     mHasInstalledModel = NNFileUtils::isAnyModelInstalled();
     _updateRows(true);
 
@@ -167,7 +204,7 @@ int ModelDownloadPanel::getIdealHeight()
     const int num_rows = static_cast<int>(ALL_MODEL_SIZES.size());
 
     return PAD_TOP + TITLE_HEIGHT + SUBTITLE_HEIGHT + HEADER_GAP + num_rows * ROW_HEIGHT + (num_rows - 1) * ROW_GAP
-           + FOOTER_GAP + BUTTON_HEIGHT + PAD_BOTTOM;
+           + FOOTER_GAP + BUTTON_HEIGHT + PATH_LINE_HEIGHT + FOOTER_BUTTON_GAP + PAD_BOTTOM;
 }
 
 void ModelDownloadPanel::setCloseButtonVisible(bool inVisible)
@@ -260,8 +297,26 @@ void ModelDownloadPanel::resized()
 
     area.removeFromTop(FOOTER_GAP - ROW_GAP);
 
-    const int folder_width = mOpenFolderButton.getIdealWidth();
-    mOpenFolderButton.setBounds(area.removeFromTop(BUTTON_HEIGHT).withTrimmedLeft(CONTENT_X).withWidth(folder_width));
+    auto footer = area.withTrimmedLeft(CONTENT_X);
+
+    const int open_width = mOpenFolderButton.getIdealWidth();
+    const int change_width = mChangeFolderButton.getIdealWidth();
+
+    // Side by side, the chooser to the right of the opener.
+    mOpenFolderButton.setBounds(footer.removeFromTop(BUTTON_HEIGHT).withX(CONTENT_X).withWidth(open_width));
+
+    mChangeFolderButton.setBounds(mOpenFolderButton.getBounds()
+                                      .withLeft(mOpenFolderButton.getRight() + CONTROL_GAP)
+                                      .withWidth(change_width));
+
+    // The models directory itself, under the buttons: where a download goes, and what to fix when
+    // transcription cannot open it.
+    const juce::String path = NNFileUtils::getModelsDirectory().getFullPathName();
+    const int label_width = nn::fonts::meta().getStringWidth(PATHS_LABEL);
+    const int path_width = jmax(0, getLocalBounds().withTrimmedLeft(CONTENT_X).getWidth() - label_width - CONTROL_GAP);
+
+    mPathText = elidePath(path, path_width, nn::fonts::meta());
+    mPathLabelWidth = label_width;
 }
 
 void ModelDownloadPanel::paint(juce::Graphics& g)

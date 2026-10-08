@@ -84,9 +84,15 @@ private:
 
     NnFlatButton mCloseButton {"CloseModelPanel"};
     NnFlatButton mOpenFolderButton {"OpenModelsFolder"};
+    NnFlatButton mChangeFolderButton {"ChangeModelsFolder"};
+
+    /** Kept so the chooser can outlive the call that launched it, like elsewhere in the UI. */
+    std::shared_ptr<juce::FileChooser> mDirectoryChooser;
 
     bool mHasInstalledModel = false;
     int mHoveredRow = -1;
+
+    void _chooseModelsDirectory();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ModelDownloadPanel)
 };

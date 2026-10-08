@@ -19,6 +19,7 @@ namespace
     const char* TOOLTIPS_VISIBLE_KEY = "tooltipsVisible";
     const char* COMPUTE_DEVICE_KEY = "computeDevice";
     const char* COMPUTE_DEVICE_ORDINAL_KEY = "computeDeviceOrdinal";
+    const char* MODELS_DIRECTORY_KEY = "modelsDirectory";
 
     /**
      * Deleted by JUCE's own shutdown, while the message manager still exists: the file is a Timer,
@@ -72,6 +73,8 @@ namespace
         const ComputeDeviceChoice device = getComputeDevice();
         props.setValue(COMPUTE_DEVICE_KEY, juce::String(device.name));
         props.setValue(COMPUTE_DEVICE_ORDINAL_KEY, device.ordinal);
+
+        props.setValue(MODELS_DIRECTORY_KEY, getModelsDirectory().getFullPathName());
 
         props.save();
     }
@@ -128,6 +131,35 @@ void setComputeDevice(const ComputeDeviceChoice& inChoice)
     properties().setValue(COMPUTE_DEVICE_KEY, juce::String(inChoice.name));
     properties().setValue(COMPUTE_DEVICE_ORDINAL_KEY, inChoice.ordinal);
     _saveAllSettings();
+}
+
+juce::File getModelsDirectory()
+{
+    const juce::String stored = properties().getValue(MODELS_DIRECTORY_KEY).trim();
+
+    // An empty or unusable value means the default: models must always resolve to somewhere a
+    // download can be written. A path that no longer exists falls back too, rather than leaving
+    // every instance pointing at nothing.
+    if (stored.isNotEmpty() && juce::File(stored).isDirectory()) {
+        return {stored};
+    }
+
+    return NNFileUtils::getDefaultModelsDirectory();
+}
+
+void setModelsDirectory(const juce::File& inDirectory)
+{
+    // Storing the default itself keeps the file clean: an unset key and an explicit default behave
+    // the same, and clearing the override is then just setting it back.
+    const bool is_default = inDirectory == NNFileUtils::getDefaultModelsDirectory();
+
+    properties().setValue(MODELS_DIRECTORY_KEY, is_default ? juce::String {} : inDirectory.getFullPathName());
+    _saveAllSettings();
+}
+
+bool isValidModelsDirectory(const juce::File& inDirectory)
+{
+    return inDirectory.isDirectory() || inDirectory.createDirectory().wasOk();
 }
 
 } // namespace NnGlobalSettings
