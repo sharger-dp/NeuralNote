@@ -7,6 +7,8 @@
 
 #include <string>
 
+#include <JuceHeader.h>
+
 #include "TranscriptionConstants.h"
 
 /**
@@ -50,6 +52,16 @@ void setTooltipsVisible(bool inVisible);
 
 ComputeDeviceChoice getComputeDevice();
 void setComputeDevice(const ComputeDeviceChoice& inChoice);
+
+/**
+ * Where checkpoints live. Defaults to <NeuralNote>/models; the user can point it elsewhere, e.g.
+ * out of a Windows profile folder named in Cyrillic, which the transcription engine cannot open.
+ */
+juce::File getModelsDirectory();
+void setModelsDirectory(const juce::File& inDirectory);
+
+/** Whether the directory is one we would accept as a models directory (exists or can be created). */
+bool isValidModelsDirectory(const juce::File& inDirectory);
 
 } // namespace NnGlobalSettings
 

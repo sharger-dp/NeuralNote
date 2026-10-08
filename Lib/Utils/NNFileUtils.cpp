@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include "ModelManifest.h"
+#include "NnGlobalSettings.h"
 
 namespace NNFileUtils
 {
@@ -17,9 +18,14 @@ juce::File getNeuralNoteDirectory()
         .getChildFile("NeuralNote");
 }
 
-juce::File getModelsDirectory()
+juce::File getDefaultModelsDirectory()
 {
     return getNeuralNoteDirectory().getChildFile("models");
+}
+
+juce::File getModelsDirectory()
+{
+    return NnGlobalSettings::getModelsDirectory();
 }
 
 juce::File getGlobalSettingsFile()

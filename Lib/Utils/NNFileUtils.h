@@ -23,8 +23,14 @@ namespace NNFileUtils
 /** <user application data>/NeuralNote: ~/Library on macOS, %APPDATA% on Windows, ~/.config on Linux. */
 juce::File getNeuralNoteDirectory();
 
-/** <NeuralNote>/models, where checkpoints are downloaded to, or put by hand. */
+/**
+ * Where checkpoints are downloaded to, or put by hand: the directory set through
+ * NnGlobalSettings::setModelsDirectory, or <NeuralNote>/models if none is set.
+ */
 juce::File getModelsDirectory();
+
+/** The default models directory, ignoring any override. */
+juce::File getDefaultModelsDirectory();
 
 /** <NeuralNote>/global.settings, the settings shared by every instance. See NnGlobalSettings. */
 juce::File getGlobalSettingsFile();
